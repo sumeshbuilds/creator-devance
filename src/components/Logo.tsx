@@ -43,7 +43,7 @@ export default function Logo({ className = "" }: { className?: string }) {
           </linearGradient>
         </defs>
       </svg>
-      <span className="text-xl font-bold tracking-tight text-foreground">
+      <span className="hidden text-xl font-bold tracking-tight text-foreground sm:inline">
         creator
         <span className="font-cursive font-semibold text-primary">-devance</span>
       </span>

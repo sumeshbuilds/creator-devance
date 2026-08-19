@@ -112,7 +112,7 @@ export default function DashboardTabs({
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 rounded-3xl border border-zinc-200 bg-white p-2 shadow-sm">
+      <div className="hidden flex-wrap gap-2 rounded-3xl border border-zinc-200 bg-white p-2 shadow-sm sm:flex">
         {TABS.map((t) => {
           const active = t.id === tab;
           return (
@@ -134,7 +134,7 @@ export default function DashboardTabs({
         })}
       </div>
 
-      <div className="mt-8">
+      <div className="mt-4 pb-24 sm:mt-8 sm:pb-0">
         {tab === "page" && <PageLayoutEditor initialProfile={profile} userId={userId} />}
         {tab === "profile" && (
           <DashboardEditor profile={profile} links={links} userId={userId} />
@@ -144,6 +144,31 @@ export default function DashboardTabs({
         {tab === "store" && <StoreEditor initialProducts={products} userId={userId} />}
         {tab === "contact" && <ContactEditor initialProfile={profile} userId={userId} />}
       </div>
+
+      <nav
+        aria-label="Dashboard sections"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-200/80 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:hidden"
+      >
+        <div className="mx-auto flex max-w-md items-stretch justify-between overflow-x-auto px-1">
+          {TABS.map((t) => {
+            const active = t.id === tab;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => selectTab(t.id)}
+                aria-current={active ? "page" : undefined}
+                aria-label={t.label}
+                className={`flex min-w-[52px] flex-1 items-center justify-center px-1 py-3 transition-colors [&_svg]:h-6 [&_svg]:w-6 ${
+                  active ? "text-primary" : "text-zinc-500"
+                }`}
+              >
+                {t.icon}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
