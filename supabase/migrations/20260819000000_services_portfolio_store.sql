@@ -1,4 +1,7 @@
 -- creator-devance: services, portfolio, WhatsApp store + contact
+-- Fully idempotent: safe to re-run after a partial/previous failed attempt.
+-- (Policies are dropped before creation; the public_profiles view is
+--  drop+recreated instead of CREATE OR REPLACE, which cannot reorder columns.)
 
 -- WhatsApp number for the "Contact" / "Order on WhatsApp" buttons.
 alter table public.profiles
@@ -26,27 +29,32 @@ create index if not exists services_profile_position_idx
 
 alter table public.services enable row level security;
 
+drop policy if exists "read own services" on public.services;
 create policy "read own services"
   on public.services for select
   to authenticated
   using ( (select auth.uid()) = profile_id );
 
+drop policy if exists "insert own services" on public.services;
 create policy "insert own services"
   on public.services for insert
   to authenticated
   with check ( (select auth.uid()) = profile_id );
 
+drop policy if exists "update own services" on public.services;
 create policy "update own services"
   on public.services for update
   to authenticated
   using ( (select auth.uid()) = profile_id )
   with check ( (select auth.uid()) = profile_id );
 
+drop policy if exists "delete own services" on public.services;
 create policy "delete own services"
   on public.services for delete
   to authenticated
   using ( (select auth.uid()) = profile_id );
 
+drop policy if exists "services are publicly readable" on public.services;
 create policy "services are publicly readable"
   on public.services for select
   to anon, authenticated
@@ -73,27 +81,32 @@ create index if not exists projects_profile_position_idx
 
 alter table public.projects enable row level security;
 
+drop policy if exists "read own projects" on public.projects;
 create policy "read own projects"
   on public.projects for select
   to authenticated
   using ( (select auth.uid()) = profile_id );
 
+drop policy if exists "insert own projects" on public.projects;
 create policy "insert own projects"
   on public.projects for insert
   to authenticated
   with check ( (select auth.uid()) = profile_id );
 
+drop policy if exists "update own projects" on public.projects;
 create policy "update own projects"
   on public.projects for update
   to authenticated
   using ( (select auth.uid()) = profile_id )
   with check ( (select auth.uid()) = profile_id );
 
+drop policy if exists "delete own projects" on public.projects;
 create policy "delete own projects"
   on public.projects for delete
   to authenticated
   using ( (select auth.uid()) = profile_id );
 
+drop policy if exists "projects are publicly readable" on public.projects;
 create policy "projects are publicly readable"
   on public.projects for select
   to anon, authenticated
@@ -120,27 +133,32 @@ create index if not exists products_profile_position_idx
 
 alter table public.products enable row level security;
 
+drop policy if exists "read own products" on public.products;
 create policy "read own products"
   on public.products for select
   to authenticated
   using ( (select auth.uid()) = profile_id );
 
+drop policy if exists "insert own products" on public.products;
 create policy "insert own products"
   on public.products for insert
   to authenticated
   with check ( (select auth.uid()) = profile_id );
 
+drop policy if exists "update own products" on public.products;
 create policy "update own products"
   on public.products for update
   to authenticated
   using ( (select auth.uid()) = profile_id )
   with check ( (select auth.uid()) = profile_id );
 
+drop policy if exists "delete own products" on public.products;
 create policy "delete own products"
   on public.products for delete
   to authenticated
   using ( (select auth.uid()) = profile_id );
 
+drop policy if exists "products are publicly readable" on public.products;
 create policy "products are publicly readable"
   on public.products for select
   to anon, authenticated
@@ -152,11 +170,13 @@ insert into storage.buckets (id, name, public)
 values ('media', 'media', true)
 on conflict (id) do nothing;
 
+drop policy if exists "media are publicly readable" on storage.objects;
 create policy "media are publicly readable"
   on storage.objects for select
   to public
   using ( bucket_id = 'media' );
 
+drop policy if exists "users can upload their own media" on storage.objects;
 create policy "users can upload their own media"
   on storage.objects for insert
   to authenticated
@@ -165,6 +185,7 @@ create policy "users can upload their own media"
     and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
+drop policy if exists "users can update their own media" on storage.objects;
 create policy "users can update their own media"
   on storage.objects for update
   to authenticated
@@ -177,6 +198,7 @@ create policy "users can update their own media"
     and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
+drop policy if exists "users can delete their own media" on storage.objects;
 create policy "users can delete their own media"
   on storage.objects for delete
   to authenticated
@@ -185,8 +207,12 @@ create policy "users can delete their own media"
     and (storage.foldername(name))[1] = (select auth.uid())::text
   );
 
--- Expose whatsapp_number on the public view (used by contact + order buttons).
-create or replace view public.public_profiles
+-- Expose whatsapp_number on the public view. Drop+recreate: CREATE OR REPLACE
+-- VIEW cannot reorder columns (would raise 42P16), so this is the safe way to
+-- update an existing view. Grants are re-applied afterwards.
+drop view if exists public.public_profiles;
+
+create view public.public_profiles
 as
 select
   id,
@@ -200,9 +226,9 @@ select
   instagram_url,
   facebook_url,
   youtube_url,
-  whatsapp_number,
   created_at,
-  updated_at
+  updated_at,
+  whatsapp_number
 from public.profiles;
 
 grant select on public.public_profiles to anon, authenticated;

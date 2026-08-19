@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Database } from "@/lib/database.types";
 import DashboardEditor from "./DashboardEditor";
@@ -85,8 +85,17 @@ export default function DashboardTabs({
   userId: string;
 }) {
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab");
-  const tab: TabId = TABS.some((t) => t.id === tabParam) ? (tabParam as TabId) : "profile";
+  const [tab, setTab] = useState<TabId>(() => {
+    const t = searchParams.get("tab");
+    return TABS.some((x) => x.id === t) ? (t as TabId) : "profile";
+  });
+
+  function selectTab(next: TabId) {
+    setTab(next);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", next);
+    window.history.replaceState(null, "", `?${params.toString()}`);
+  }
 
   return (
     <div>
@@ -94,9 +103,11 @@ export default function DashboardTabs({
         {TABS.map((t) => {
           const active = t.id === tab;
           return (
-            <a
+            <button
               key={t.id}
-              href={`/dashboard?tab=${t.id}`}
+              type="button"
+              onClick={() => selectTab(t.id)}
+              aria-current={active ? "page" : undefined}
               className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors ${
                 active
                   ? "bg-primary text-white shadow-sm"
@@ -105,7 +116,7 @@ export default function DashboardTabs({
             >
               {t.icon}
               {t.label}
-            </a>
+            </button>
           );
         })}
       </div>

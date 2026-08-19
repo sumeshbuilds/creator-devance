@@ -11,7 +11,8 @@ A Linktree-style "link in bio" platform for creators (esp. Odisha, India):
 1. **Marketing / landing page** — all content is demo/fictional (branding,
    analytics numbers, testimonials, pricing, avatars).
 2. **Auth** — email/password signup with username login, backed by Supabase Auth.
-3. **Dashboard** — protected page; onboarding "ask for more details" is a future step.
+3. **Dashboard** — protected tabbed editor: profile & links, services, portfolio,
+   WhatsApp store, contact. Landing "ask for more details" onboarding is a future step.
 
 ## Tech stack
 
@@ -136,8 +137,10 @@ profession, location) into `profiles` on signup; raises on username conflict so
 the `auth.users` insert rolls back.
 
 RLS on `profiles`: SELECT/UPDATE/INSERT only for `auth.uid() = id`
-(own row). No anon read access. Landing/public pages read profiles later via a
-different mechanism (not yet built).
+(own row). No anon read access — public pages read via the `public_profiles` view
+(owned by postgres, bypasses RLS, grants to anon/authenticated).
+`links`, `services`, `projects`, `products`: own-row CRUD for authenticated plus
+anon SELECT (public page rendering).
 
 ## Pages & routes
 
@@ -227,7 +230,9 @@ Shared:
 
 All under `src/components/dashboard/`, mounted by `src/app/dashboard/page.tsx`
 (server fetch → `<Suspense>` → `DashboardTabs`). Active tab is a URL search param
-(`/dashboard?tab=services`), so it survives reloads.
+(`/dashboard?tab=services`) so it survives reloads. Tab switching is **fully SPA**
+(client-side: `useState` in `DashboardTabs`, URL synced via `window.history.replaceState`)
+— no page reload or server refetch on tab change.
 
 | Tab               | Component            | Notes                                              |
 | ----------------- | -------------------- | -------------------------------------------------- |
@@ -310,9 +315,12 @@ Every editor follows the same pattern as `DashboardEditor`: left sidebar list of
       (PowerShell `Add-Content` appended to last line without newline)
 - [x] Domain updated to `creator.devance.in` (was `devance.in`)
 - [x] Services, Portfolio & Store dashboard (migration 4 `20260819000000_services_portfolio_store.sql`
-      NOT yet applied to remote DB — apply via Supabase MCP / SQL editor):
+      NOT yet applied to remote DB — apply via Supabase MCP / SQL editor; now fully idempotent,
+      use `drop view if exists public.public_profiles` + recreate because `CREATE OR REPLACE VIEW`
+      cannot reorder columns, e.g. when adding `whatsapp_number`):
       - Dashboard is now tabbed: **Profile & Links | Services | Portfolio | Store | Contact**
-        (active tab in URL `?tab=…`; shell in `src/components/dashboard/DashboardTabs.tsx`)
+        (active tab in URL `?tab=…`, survives reloads; switching is SPA via `useState` +
+        `window.history.replaceState` — no reload — in `src/components/dashboard/DashboardTabs.tsx`)
       - `ServicesEditor` — add/edit/delete services (title, description, price)
       - `PortfolioEditor` — image upload to `media` bucket OR video/reel URL
       - `StoreEditor` — products (name, price ₹, image, description, show/hide toggle)
