@@ -12,23 +12,20 @@ import { formatPrice, waLink } from "@/lib/whatsapp";
 
 type SocialKey = "instagram" | "facebook" | "youtube";
 
-const SOCIALS: { key: SocialKey; label: string; href: string; path: string }[] = [
+const SOCIALS: { key: SocialKey; label: string; path: string }[] = [
   {
     key: "instagram",
     label: "Instagram",
-    href: "https://instagram.com",
     path: "M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm4.5-2.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2z",
   },
   {
     key: "facebook",
     label: "Facebook",
-    href: "https://facebook.com",
     path: "M13.4 21v-7.2h2.4l.4-2.8h-2.8V9.2c0-.8.2-1.4 1.4-1.4h1.5V5.3c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.8H7.7v2.8h2.4V21h3.3z",
   },
   {
     key: "youtube",
     label: "YouTube",
-    href: "https://youtube.com",
     path: "M23 7.6s-.2-1.6-.9-2.3c-.9-.9-1.9-.9-2.4-1C16.6 4 12 4 12 4s-4.6 0-7.7.3c-.5.1-1.5.1-2.4 1-.7.7-.9 2.3-.9 2.3S.8 9.5.8 11.3v1.4c0 1.8.2 3.7.2 3.7s.2 1.6.9 2.3c.9.9 2.1.9 2.6 1 1.9.2 7.5.2 7.5.2s4.6 0 7.7-.2c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.7v-1.4c0-1.8-.2-3.7-.2-3.7zM9.7 15.3V8.7l6.4 3.3-6.4 3.3z",
   },
 ];
@@ -61,28 +58,13 @@ function normalizeUrl(url: string) {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
-function CardHeader({
-  title,
-  icon,
-  count,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  count?: number;
-}) {
+function SectionHeading({ title }: { title: string }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        {icon}
-      </span>
-      <h2 className="text-base font-extrabold tracking-tight text-foreground">
+    <div className="flex items-center gap-4">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
         {title}
-      </h2>
-      {count !== undefined && (
-        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-bold text-zinc-500">
-          {count}
-        </span>
-      )}
+      </p>
+      <span className="h-px flex-1 bg-zinc-200" />
     </div>
   );
 }
@@ -100,7 +82,7 @@ function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-function ServiceCard({
+function ServiceRow({
   service,
   waLinkFor,
 }: {
@@ -109,28 +91,26 @@ function ServiceCard({
 }) {
   const price = formatPrice(service.price);
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 transition-colors hover:border-primary/20">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="font-bold text-foreground">{service.title}</h3>
-        {price && (
-          <span className="shrink-0 text-sm font-bold text-primary">
-            {price}
-          </span>
+    <div className="flex flex-col gap-4 py-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+      <div className="max-w-2xl">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h3 className="text-lg font-bold text-zinc-900">{service.title}</h3>
+          {price && <span className="text-sm font-bold text-primary">{price}</span>}
+        </div>
+        {service.description && (
+          <p className="mt-1.5 leading-relaxed text-zinc-500">
+            {service.description}
+          </p>
         )}
       </div>
-      {service.description && (
-        <p className="text-sm leading-relaxed text-zinc-600">
-          {service.description}
-        </p>
-      )}
       <a
         href={waLinkFor(`Hi, I'm interested in your service: ${service.title}`)}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-1 inline-flex w-fit items-center gap-2 text-sm font-semibold text-emerald-600 transition-colors hover:text-emerald-700"
+        className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-emerald-600/30 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-600 hover:text-white sm:self-auto"
       >
         <WhatsAppIcon className="h-4 w-4" />
-        Contact on WhatsApp
+        Contact
       </a>
     </div>
   );
@@ -143,25 +123,24 @@ function ProjectCard({
   project: PublicProject;
   featured?: boolean;
 }) {
+  const rounded = featured
+    ? "rounded-3xl"
+    : "rounded-2xl";
   if (project.media_type === "video") {
     return (
       <a
         href={normalizeUrl(project.media_url)}
         target="_blank"
         rel="noopener noreferrer"
-        className="group relative flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-900 to-zinc-700 shadow-sm transition-transform hover:-translate-y-0.5"
+        className={`group relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-zinc-900 to-zinc-700 shadow-sm transition-transform hover:-translate-y-1 ${rounded}`}
       >
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-transform group-hover:scale-110">
-          <svg
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="ml-0.5 h-6 w-6"
-          >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-6 w-6">
             <path d="M8 5.5v13l11-6.5-11-6.5z" />
           </svg>
         </span>
         {project.title && (
-          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-8 text-sm font-semibold text-white">
+          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10 text-sm font-semibold text-white">
             {project.title}
           </span>
         )}
@@ -169,15 +148,15 @@ function ProjectCard({
     );
   }
   return (
-    <div className="group relative h-full w-full overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-sm transition-transform hover:-translate-y-0.5">
+    <div className={`group relative h-full w-full overflow-hidden bg-zinc-100 shadow-sm transition-transform hover:-translate-y-1 ${rounded}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={project.media_url}
         alt={project.title || "Portfolio image"}
-        className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${featured ? "" : ""}`}
+        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
       {project.title && (
-        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-8 text-sm font-semibold text-white">
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-5 pb-4 pt-10 text-sm font-semibold text-white">
           {project.title}
         </span>
       )}
@@ -194,14 +173,14 @@ function ProductCard({
 }) {
   const price = formatPrice(product.price);
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-      <div className="relative aspect-square overflow-hidden bg-zinc-100">
+    <article className="group">
+      <div className="aspect-square overflow-hidden rounded-3xl bg-zinc-100">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={product.image_url}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <span className="flex h-full w-full items-center justify-center text-3xl">
@@ -209,33 +188,33 @@ function ProductCard({
           </span>
         )}
       </div>
-      <div className="flex flex-1 flex-col p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-foreground">{product.name}</h3>
-          {price && (
-            <span className="shrink-0 text-sm font-bold text-primary">
-              {price}
-            </span>
+      <div className="mt-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-bold text-zinc-900">{product.name}</h3>
+          {product.description && (
+            <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-zinc-500">
+              {product.description}
+            </p>
           )}
         </div>
-        {product.description && (
-          <p className="mt-1 text-sm leading-relaxed text-zinc-600">
-            {product.description}
-          </p>
+        {price && (
+          <span className="shrink-0 text-sm font-bold text-primary">
+            {price}
+          </span>
         )}
-        <a
-          href={waLinkFor(
-            `Hi, I want to order "${product.name}"${price ? ` (${price})` : ""}`,
-          )}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5"
-        >
-          <WhatsAppIcon className="h-4 w-4" />
-          Order on WhatsApp
-        </a>
       </div>
-    </div>
+      <a
+        href={waLinkFor(
+          `Hi, I want to order "${product.name}"${price ? ` (${price})` : ""}`,
+        )}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+      >
+        <WhatsAppIcon className="h-4 w-4" />
+        Order on WhatsApp
+      </a>
+    </article>
   );
 }
 
@@ -255,10 +234,12 @@ export default function PublicProfilePage({
   const displayName = profile.brand_name || profile.full_name;
   const hasWhatsApp = Boolean(profile.whatsapp_number);
   const waLinkFor = (text: string) => waLink(profile.whatsapp_number ?? "", text);
+  const firstName = displayName.split(" ")[0];
+  const hasSocials = SOCIALS.some((s) => profile[`${s.key}_url`]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-violet-50 via-white to-white">
-      <div className="relative h-44 w-full sm:h-52 md:h-64">
+    <main className="min-h-screen bg-zinc-50">
+      <div className="relative h-48 w-full overflow-hidden sm:h-56 md:h-72">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={bannerFor(profile.username)}
@@ -266,12 +247,12 @@ export default function PublicProfilePage({
           aria-hidden="true"
           className="h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/30 via-primary/5 to-white" />
+        <div className="absolute inset-0 bg-gradient-to-b from-violet-950/25 via-transparent to-transparent" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center gap-4 pb-2 md:flex-row md:items-end md:gap-6">
-          <div className="-mt-16 h-28 w-28 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary-light text-4xl font-bold text-white shadow-xl shadow-primary/20 ring-4 ring-white md:-mt-20 md:h-32 md:w-32">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center gap-5 md:flex-row md:items-end md:gap-8">
+          <div className="-mt-14 h-28 w-28 overflow-hidden rounded-full bg-gradient-to-br from-primary to-primary-light text-4xl font-bold text-white shadow-xl shadow-primary/20 ring-4 ring-zinc-50 md:-mt-20 md:h-36 md:w-36">
             {profile.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -286,12 +267,12 @@ export default function PublicProfilePage({
             )}
           </div>
 
-          <div className="flex flex-1 flex-col items-center gap-3 pt-2 text-center md:items-start md:pt-0 md:text-left">
+          <div className="flex flex-1 flex-col items-center gap-4 pt-3 text-center md:items-start md:pt-4 md:text-left">
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+              <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
                 {displayName}
               </h1>
-              <p className="mt-1 text-sm text-zinc-500">
+              <p className="mt-2 text-zinc-500">
                 @{profile.username} ·{" "}
                 {PROFESSION_LABELS[profile.profession]} in {profile.location}
               </p>
@@ -305,14 +286,14 @@ export default function PublicProfilePage({
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition-colors hover:bg-emerald-700"
                 >
                   <WhatsAppIcon className="h-5 w-5" />
                   Chat on WhatsApp
                 </a>
               )}
 
-              {SOCIALS.some((s) => profile[`${s.key}_url`]) && (
+              {hasSocials && (
                 <div className="flex items-center gap-2">
                   {SOCIALS.map((social) => {
                     const url = profile[`${social.key}_url`];
@@ -324,7 +305,7 @@ export default function PublicProfilePage({
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={social.label}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-zinc-500 shadow-sm ring-1 ring-zinc-200 transition-all hover:-translate-y-0.5 hover:text-primary hover:ring-primary/40"
                       >
                         <svg
                           viewBox="0 0 24 24"
@@ -349,141 +330,68 @@ export default function PublicProfilePage({
         </div>
 
         {profile.bio && (
-          <p className="mx-auto mt-6 max-w-2xl text-center leading-relaxed text-zinc-600 md:text-left">
+          <p className="mx-auto mt-8 max-w-2xl text-center text-lg leading-relaxed text-zinc-600 md:text-left">
             {profile.bio}
           </p>
         )}
 
-        <div className="mt-10 grid grid-cols-1 gap-5 pb-16 lg:grid-cols-12">
-          {services.length > 0 && (
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm lg:col-span-7">
-              <CardHeader
-                title="Services"
-                count={services.length}
-                icon={
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-5 w-5"
+        <div className="pb-8">
+          {links.length > 0 && (
+            <section className="mt-16">
+              <SectionHeading title="Links" />
+              <div className="mt-4 flex flex-col">
+                {links.map((link) => (
+                  <a
+                    key={link.id}
+                    href={normalizeUrl(link.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center justify-between gap-4 border-b border-zinc-200 py-5 text-base font-semibold text-zinc-900 transition-colors hover:text-primary"
                   >
-                    <path
-                      d="M13 2 4.5 13.5H11l-1.5 8.5 9.5-12.5h-6.5L13 2z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                }
-              />
-              <ul className="mt-5 flex flex-col gap-3">
-                {services.map((service) => (
-                  <li key={service.id}>
-                    <ServiceCard
-                      service={service}
-                      waLinkFor={waLinkFor}
-                    />
-                  </li>
+                    <span className="flex items-center gap-3">
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-primary/70" />
+                      <span className="truncate">{link.title}</span>
+                    </span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="h-4 w-4 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-primary"
+                    >
+                      <path d="M7 17 17 7M8 7h9v9" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </a>
                 ))}
-              </ul>
+              </div>
             </section>
           )}
 
-          {links.length > 0 && (
-            <section className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-primary/[0.03] to-white p-6 shadow-sm lg:col-span-5">
-              <CardHeader
-                title="Links"
-                count={links.length}
-                icon={
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                }
-              />
-              <ul className="mt-5 flex flex-col gap-3">
-                {links.map((link) => (
-                  <li key={link.id}>
-                    <a
-                      href={normalizeUrl(link.url)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex items-center justify-between gap-3 rounded-2xl border border-zinc-100 bg-white px-4 py-3.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/5 hover:shadow-md"
-                    >
-                      <span className="truncate">{link.title}</span>
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className="h-4 w-4 shrink-0 text-zinc-300 transition-colors group-hover:text-primary"
-                      >
-                        <path
-                          d="M7 17 17 7M8 7h9v9"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </a>
-                  </li>
+          {services.length > 0 && (
+            <section className="mt-16">
+              <SectionHeading title="Services" />
+              <div className="mt-2 divide-y divide-zinc-200">
+                {services.map((service) => (
+                  <ServiceRow
+                    key={service.id}
+                    service={service}
+                    waLinkFor={waLinkFor}
+                  />
                 ))}
-              </ul>
+              </div>
             </section>
           )}
 
           {projects.length > 0 && (
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm lg:col-span-12">
-              <CardHeader
-                title="Portfolio"
-                count={projects.length}
-                icon={
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-5 w-5"
-                  >
-                    <rect
-                      x="3"
-                      y="3"
-                      width="18"
-                      height="18"
-                      rx="3"
-                    />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <path
-                      d="m21 15-5-5-10 10"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                }
-              />
-              <div className="mt-5 grid auto-rows-[160px] grid-cols-2 gap-3 sm:auto-rows-[180px] lg:auto-rows-[200px] lg:grid-cols-6">
+            <section className="mt-16">
+              <SectionHeading title="Portfolio" />
+              <div className="mt-6 grid auto-rows-[150px] grid-cols-2 gap-3 sm:auto-rows-[170px] lg:auto-rows-[190px] lg:grid-cols-4">
                 {projects.map((project, i) => (
                   <div
                     key={project.id}
                     className={i === 0 ? "col-span-2 row-span-2" : ""}
                   >
-                    <ProjectCard
-                      project={project}
-                      featured={i === 0}
-                    />
+                    <ProjectCard project={project} featured={i === 0} />
                   </div>
                 ))}
               </div>
@@ -491,32 +399,9 @@ export default function PublicProfilePage({
           )}
 
           {products.length > 0 && (
-            <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm lg:col-span-7">
-              <CardHeader
-                title="Store"
-                count={products.length}
-                icon={
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      d="M4 7h16l1 4a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0l1-4z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M5 11v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                }
-              />
-              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <section className="mt-16">
+              <SectionHeading title="Store" />
+              <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
                 {products.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -528,96 +413,74 @@ export default function PublicProfilePage({
             </section>
           )}
 
-          <section className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-primary/[0.03] to-white p-6 shadow-sm lg:col-span-5">
-            <CardHeader
-              title="Get in touch"
-              icon={
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="h-5 w-5"
-                >
-                  <path
-                    d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13.96.36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.34 1.84.57 2.8.7A2 2 0 0 1 22 16.9z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              }
-            />
-            <div className="mt-5 flex flex-col gap-4">
-              <div className="flex items-center gap-3 text-sm text-zinc-600">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="h-4 w-4 shrink-0 text-zinc-400"
-                >
-                  <path
-                    d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                {PROFESSION_LABELS[profile.profession]} in{" "}
-                {profile.location}, Odisha
-              </div>
+          <section className="relative mt-20 overflow-hidden rounded-[2.5rem] bg-primary px-6 py-14 text-center shadow-xl shadow-primary/20 sm:px-14 sm:py-16">
+            <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary-light/40 blur-3xl" />
+            <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
+            <div className="relative">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
+                Let&apos;s work together
+              </p>
+              <h2 className="mx-auto mt-3 max-w-2xl text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                Start a conversation with {firstName}
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-white/80">
+                {PROFESSION_LABELS[profile.profession]} based in{" "}
+                {profile.location}, Odisha — reach out anytime.
+              </p>
 
-              {hasWhatsApp && (
-                <a
-                  href={waLinkFor(
-                    "Hi, I found your page on devance and would like to connect.",
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5"
-                >
-                  <WhatsAppIcon className="h-5 w-5" />
-                  Chat on WhatsApp
-                </a>
-              )}
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                {hasWhatsApp && (
+                  <a
+                    href={waLinkFor(
+                      "Hi, I found your page on devance and would like to connect.",
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-zinc-900 shadow-lg transition-colors hover:bg-zinc-100"
+                  >
+                    <WhatsAppIcon className="h-5 w-5 text-emerald-600" />
+                    Chat on WhatsApp
+                  </a>
+                )}
 
-              {SOCIALS.some((s) => profile[`${s.key}_url`]) && (
-                <div className="flex items-center gap-2">
-                  {SOCIALS.map((social) => {
-                    const url = profile[`${social.key}_url`];
-                    if (!url) return null;
-                    return (
-                      <a
-                        key={social.key}
-                        href={normalizeUrl(url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={social.label}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          className="h-5 w-5"
+                {hasSocials && (
+                  <div className="flex items-center gap-2">
+                    {SOCIALS.map((social) => {
+                      const url = profile[`${social.key}_url`];
+                      if (!url) return null;
+                      return (
+                        <a
+                          key={social.key}
+                          href={normalizeUrl(url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={social.label}
+                          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition-all hover:-translate-y-0.5 hover:bg-white/20"
                         >
-                          <path
-                            d={social.path}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="h-5 w-5"
+                          >
+                            <path
+                              d={social.path}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         </div>
 
-        <footer className="border-t border-zinc-100 py-8 text-center">
+        <footer className="border-t border-zinc-200 py-10 text-center">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 transition-colors hover:text-primary"
