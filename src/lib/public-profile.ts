@@ -1,5 +1,5 @@
 import { createPublicClient } from "@/lib/supabase/public";
-import type { Database } from "@/lib/database.types";
+import type { Database, Json } from "@/lib/database.types";
 import { siteUrl } from "@/lib/site";
 import { PROFESSION_LABELS } from "@/lib/auth-constants";
 
@@ -9,6 +9,32 @@ export type PublicLink = Database["public"]["Tables"]["links"]["Row"];
 export type PublicService = Database["public"]["Tables"]["services"]["Row"];
 export type PublicProject = Database["public"]["Tables"]["projects"]["Row"];
 export type PublicProduct = Database["public"]["Tables"]["products"]["Row"];
+
+export const PAGE_SECTION_KEYS = ["social", "store", "portfolio"] as const;
+export type PageSectionKey = (typeof PAGE_SECTION_KEYS)[number];
+
+export const DEFAULT_PAGE_SECTIONS: PageSectionKey[] = [
+  "social",
+  "store",
+  "portfolio",
+];
+
+export function parsePageSections(raw: Json | null | undefined): PageSectionKey[] {
+  if (!Array.isArray(raw)) return [...DEFAULT_PAGE_SECTIONS];
+  const seen = new Set<PageSectionKey>();
+  const result: PageSectionKey[] = [];
+  for (const item of raw) {
+    if (
+      typeof item === "string" &&
+      PAGE_SECTION_KEYS.includes(item as PageSectionKey) &&
+      !seen.has(item as PageSectionKey)
+    ) {
+      seen.add(item as PageSectionKey);
+      result.push(item as PageSectionKey);
+    }
+  }
+  return result;
+}
 
 export function districtSlug(district: string) {
   return district.toLowerCase();

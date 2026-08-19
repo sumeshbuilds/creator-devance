@@ -8,6 +8,7 @@ import ServicesEditor from "./ServicesEditor";
 import PortfolioEditor from "./PortfolioEditor";
 import StoreEditor from "./StoreEditor";
 import ContactEditor from "./ContactEditor";
+import PageLayoutEditor from "./PageLayoutEditor";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type CreatorLink = Database["public"]["Tables"]["links"]["Row"];
@@ -15,9 +16,21 @@ type Service = Database["public"]["Tables"]["services"]["Row"];
 type Project = Database["public"]["Tables"]["projects"]["Row"];
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
-type TabId = "profile" | "services" | "portfolio" | "store" | "contact";
+type TabId = "profile" | "services" | "portfolio" | "store" | "contact" | "page";
 
 const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
+  {
+    id: "page",
+    label: "Page",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="3" y="14" width="7" height="7" rx="1.5" />
+        <rect x="14" y="14" width="7" height="7" rx="1.5" />
+      </svg>
+    ),
+  },
   {
     id: "profile",
     label: "Profile & Links",
@@ -122,6 +135,7 @@ export default function DashboardTabs({
       </div>
 
       <div className="mt-8">
+        {tab === "page" && <PageLayoutEditor initialProfile={profile} userId={userId} />}
         {tab === "profile" && (
           <DashboardEditor profile={profile} links={links} userId={userId} />
         )}

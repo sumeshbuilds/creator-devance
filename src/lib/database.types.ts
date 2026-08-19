@@ -27,6 +27,7 @@ export interface Database {
           youtube_url: string | null;
           whatsapp_number: string | null;
           onboarding_completed: boolean;
+          page_sections: Json | null;
           created_at: string;
           updated_at: string;
         };
@@ -45,6 +46,7 @@ export interface Database {
           youtube_url?: string | null;
           whatsapp_number?: string | null;
           onboarding_completed?: boolean;
+          page_sections?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -63,6 +65,7 @@ export interface Database {
           youtube_url?: string | null;
           whatsapp_number?: string | null;
           onboarding_completed?: boolean;
+          page_sections?: Json | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -242,6 +245,7 @@ export interface Database {
           facebook_url: string | null;
           youtube_url: string | null;
           whatsapp_number: string | null;
+          page_sections: Json | null;
           created_at: string;
           updated_at: string;
         };

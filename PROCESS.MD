@@ -11,8 +11,9 @@ A Linktree-style "link in bio" platform for creators (esp. Odisha, India):
 1. **Marketing / landing page** — all content is demo/fictional (branding,
    analytics numbers, testimonials, pricing, avatars).
 2. **Auth** — email/password signup with username login, backed by Supabase Auth.
-3. **Dashboard** — protected tabbed editor: profile & links, services, portfolio,
-   WhatsApp store, contact. Landing "ask for more details" onboarding is a future step.
+3. **Dashboard** — protected tabbed editor: page layout, profile & links, services,
+   portfolio, WhatsApp store, contact. Landing "ask for more details" onboarding is
+   a future step.
 
 ## Tech stack
 
@@ -37,12 +38,14 @@ A Linktree-style "link in bio" platform for creators (esp. Odisha, India):
   the project ref was fixed to `txnvbuiyxwgjahejfobj`, but the MCP session must be
   **reloaded/re-authenticated** for the tools to work. If MCP DB tools return
   `You do not have permission to perform this action`, re-auth the MCP (see below).
-- Migrations live in `supabase/migrations/` (all `.sql`). Migrations 1–3
-  (`profiles`, `onboarding`, `public_pages`) are **applied** to the remote DB.
-  Migration 4 (`20260819000000_services_portfolio_store.sql` — services/projects/
-  products/whatsapp_number/media bucket) is **NOT yet applied** — apply via the
-  Supabase MCP (`supabase_apply_migration`) or the Supabase SQL editor. The app
-  degrades gracefully (empty sections) until it lands.
+- Migrations live in `supabase/migrations/` (all `.sql`). All five are **applied**
+  to the remote DB:
+  1. `20260817000000_profiles.sql` — profiles + RPCs + trigger + RLS
+  2. `20260817010000_onboarding.sql` — links table + storage (avatars)
+  3. `20260818000000_public_pages.sql` — public_profiles view
+  4. `20260819000000_services_portfolio_store.sql` — services/projects/products,
+     whatsapp_number, media bucket
+  5. `20260820000000_page_sections.sql` — `page_sections` jsonb column
 
 ## Re-authenticating the Supabase MCP
 
@@ -116,11 +119,20 @@ Notes:
 button, service "Contact" buttons, and product "Order on WhatsApp" links
 (`https://wa.me/<digits>?text=<prefilled>`, see `src/lib/whatsapp.ts`).
 
+`public.profiles.page_sections` (jsonb, nullable) — customizable public page layout:
+an ordered array of section keys `["social", "store", "portfolio"]`. Sections absent
+from the array are hidden on the public page; `null` = show all in default order.
+Edited via the dashboard **Page** tab (`PageLayoutEditor`); parsed/normalized by
+`parsePageSections()` in `src/lib/public-profile.ts` (unknown/duplicate keys dropped,
+empty array = nothing shown).
+
 `public.public_profiles` (view — public-facing, no email exposed):
 
-- Same columns as profiles minus `email`, `onboarding_completed`, plus `whatsapp_number`
+- Same columns as profiles minus `email`, `onboarding_completed`; exposes
+  `whatsapp_number` and `page_sections`
 - Created by migration 3 (`20260818000000_public_pages.sql`), extended by migration 4
-  (`20260819000000_services_portfolio_store.sql`)
+  (`20260819000000_services_portfolio_store.sql`) and migration 5
+  (`20260820000000_page_sections.sql`, adds `page_sections`)
 - Owned by postgres (bypasses RLS), SELECT granted to `anon` and `authenticated`
 - Used by public profile pages and sitemap
 
@@ -170,13 +182,28 @@ Auth infra:
 - `src/lib/site.ts` — `siteUrl()` helper (reads `NEXT_PUBLIC_SITE_URL`)
 - `src/lib/public-profile.ts` — `getPublicProfile()` (returns profile, links,
   services, projects, products), `listPublicProfiles()`, `districtSlug()`,
-  `profileLongUrl()`, `profileShortUrl()`, `buildProfileMetadata()`
+  `profileLongUrl()`, `profileShortUrl()`, `buildProfileMetadata()`,
+  `parsePageSections()` + `PAGE_SECTION_KEYS` / `DEFAULT_PAGE_SECTIONS`
+  (public page section visibility + order)
 - `src/lib/whatsapp.ts` — `waLink(number, text?)` builds `https://wa.me/<digits>?text=…`;
   `formatPrice()` renders INR (`₹`). Used by Contact/Service/Product buttons.
 - `src/components/AuthShell.tsx` — shared auth page shell
 - `src/components/public/PublicProfilePage.tsx` — server component rendering the public
-  profile page (avatar, brand, bio, socials, WhatsApp contact button, Services / Portfolio /
-  Store sections — all hidden when empty, links, footer)
+  profile page (banner, LinkedIn-style profile card, social + link cards, Services /
+  Store / Portfolio sections — all hidden when empty, footer)
+  - **Design (light "creator card"):** zinc-50 background; **fixed Pexels banner**
+    (`BANNER_IMAGE` const in the file, sharp edge — no bottom fade overlay). A white
+    profile card overlaps the banner; the avatar is **half-embedded in the banner on the
+    left** (LinkedIn style) and the name sits below the avatar inside the card.
+  - Social icons are **filled brand SVGs** (Instagram gradient / Facebook blue / YouTube
+    red hovers) in the card header and again as large cards in the **Social** section,
+    which also lists the user's custom `links` (generic link icon + title + host).
+  - **Store (70%) | Services (30%)** two-column grid on desktop (each stacks/renders
+    full-width if the other is empty); **Portfolio comes last** as a bento grid (first
+    project featured 2×2).
+  - WhatsApp actions are `emerald-600`. On mobile the WhatsApp button is full-width and
+    social icons stretch evenly in one row (`flex-1`); on desktop they revert to
+    inline circles. Stats pill row removed. Footer: "Create your own page with devance".
 
 Signup flow note: Supabase project has **email confirmation enabled**
 (`mailer_autoconfirm: false`), so signup lands on a "check your email" state until
@@ -237,6 +264,7 @@ All under `src/components/dashboard/`, mounted by `src/app/dashboard/page.tsx`
 | Tab               | Component            | Notes                                              |
 | ----------------- | -------------------- | -------------------------------------------------- |
 | shell/nav         | `DashboardTabs.tsx`  | Client; tab bar + renders the active editor        |
+| Page              | `PageLayoutEditor.tsx` | Toggle which public sections show (Social & Links / Store & Services / Portfolio), reorder via up/down arrows, reset to default. Persists `profiles.page_sections` |
 | Profile & Links   | `DashboardEditor.tsx`| Original two-pane link editor (brand, bio, avatar, socials, custom links, share panel) |
 | Services          | `ServicesEditor.tsx` | Add/edit/delete services (title, description, price) |
 | Portfolio         | `PortfolioEditor.tsx`| Image upload to `media` bucket OR video/reel URL; type toggle |
@@ -310,15 +338,16 @@ Every editor follows the same pattern as `DashboardEditor`: left sidebar list of
       - Anon SELECT granted on `public_profiles` view and `links` table
 - [x] Dashboard share panel — copy short link + open page (SEO long URL not shown)
 - [x] Signup reserved-username guard — blocks `login`, `signup`, `dashboard`, etc.
-- [x] Migrations applied — profiles, onboarding, public_pages view all live
+- [x] Migrations 1–5 applied — profiles, onboarding, public_pages view,
+      services/portfolio/store, page_sections all live
 - [x] Fixed `.env` — `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` was corrupted
       (PowerShell `Add-Content` appended to last line without newline)
 - [x] Domain updated to `creator.devance.in` (was `devance.in`)
 - [x] Services, Portfolio & Store dashboard (migration 4 `20260819000000_services_portfolio_store.sql`
-      NOT yet applied to remote DB — apply via Supabase MCP / SQL editor; now fully idempotent,
-      use `drop view if exists public.public_profiles` + recreate because `CREATE OR REPLACE VIEW`
-      cannot reorder columns, e.g. when adding `whatsapp_number`):
-      - Dashboard is now tabbed: **Profile & Links | Services | Portfolio | Store | Contact**
+      — **applied** to the remote DB; fully idempotent, uses `drop view if exists public.public_profiles`
+      + recreate because `CREATE OR REPLACE VIEW` cannot reorder columns, e.g. when adding
+      `whatsapp_number`):
+      - Dashboard is now tabbed: **Page | Profile & Links | Services | Portfolio | Store | Contact**
         (active tab in URL `?tab=…`, survives reloads; switching is SPA via `useState` +
         `window.history.replaceState` — no reload — in `src/components/dashboard/DashboardTabs.tsx`)
       - `ServicesEditor` — add/edit/delete services (title, description, price)
@@ -329,9 +358,29 @@ Every editor follows the same pattern as `DashboardEditor`: left sidebar list of
       - Public page (`PublicProfilePage.tsx`) renders stacked sections — Services, Portfolio,
         Store (all hidden when empty) + WhatsApp contact button; products/services open
         `wa.me` with pre-filled messages. `getPublicProfile()` now returns services, projects,
-        products too. App degrades gracefully if migration not yet applied (empty sections).
+        products too.
 - [x] `npm run lint` clean for new code (14 pre-existing `no-html-link-for-pages` errors remain
       in `CTA.tsx`, `Hero.tsx`, `Navbar.tsx`, `Pricing.tsx`, `Showcase.tsx` — landing `<a>` tags
       to `/login|/signup`, predate this work)
 - [x] `npm run build` passing; smoke-tested `/login` 200, `/dashboard` 307 → `/login`,
       unknown username 404
+- [x] Public profile UI redesign (light "creator card" look):
+      - Fixed Pexels banner, sharp edge; avatar half-embedded in banner (LinkedIn style),
+        name inside the white card below the avatar
+      - Social section shows brand icon cards + custom link cards (replaces old links list)
+      - Store (70%) / Services (30%) split grid; Portfolio moved to the last section
+      - Stats pill row and the bottom "Start a conversation" CTA band removed
+      - Mobile polish: full-width WhatsApp button + evenly stretched social icon row
+      - Footer copy → "Create your own page with devance"
+      - `tsc --noEmit` and `eslint` clean for `PublicProfilePage.tsx`
+- [x] Customizable public page layout (dashboard "Page" tab):
+      - `profiles.page_sections` jsonb column + exposed on `public_profiles` view
+        (migration `20260820000000_page_sections.sql`, applied to remote DB)
+      - `PageLayoutEditor.tsx` — show/hide each section (Social & Links / Store &
+        Services / Portfolio), reorder with up/down arrows, reset to default, empty =
+        nothing shown. Saves via the browser Supabase client.
+      - `parsePageSections()` in `src/lib/public-profile.ts` normalizes the stored
+        array (dedupe, drop unknown keys, `null` → default order, `[]` → no sections)
+      - `PublicProfilePage.tsx` renders sections in the saved order (map over
+        `sections`), skipping empty ones
+      - `tsc --noEmit` + `eslint` clean for all touched files
