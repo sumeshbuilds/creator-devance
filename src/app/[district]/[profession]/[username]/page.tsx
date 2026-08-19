@@ -60,7 +60,13 @@ export default async function PublicProfileCanonicalPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <PublicProfilePage profile={data.profile} links={data.links} />
+      <PublicProfilePage
+        profile={data.profile}
+        links={data.links}
+        services={data.services}
+        projects={data.projects}
+        products={data.products}
+      />
     </>
   );
 }

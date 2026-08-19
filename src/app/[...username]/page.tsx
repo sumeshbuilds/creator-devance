@@ -39,6 +39,12 @@ export default async function PublicProfileShortPage({ params }: Props) {
   if (!resolved?.data) notFound();
 
   return (
-    <PublicProfilePage profile={resolved.data.profile} links={resolved.data.links} />
+    <PublicProfilePage
+      profile={resolved.data.profile}
+      links={resolved.data.links}
+      services={resolved.data.services}
+      projects={resolved.data.projects}
+      products={resolved.data.products}
+    />
   );
 }

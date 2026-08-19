@@ -36,10 +36,12 @@ A Linktree-style "link in bio" platform for creators (esp. Odisha, India):
   the project ref was fixed to `txnvbuiyxwgjahejfobj`, but the MCP session must be
   **reloaded/re-authenticated** for the tools to work. If MCP DB tools return
   `You do not have permission to perform this action`, re-auth the MCP (see below).
-- Migration lives at `supabase/migrations/20260817000000_profiles.sql` and is NOT
-  yet applied to the remote DB — apply once MCP is authenticated
-  (`supabase_apply_migration` or `supabase db push`). Signup/login will fail until
-  the `profiles` table + RPCs exist.
+- Migrations live in `supabase/migrations/` (all `.sql`). Migrations 1–3
+  (`profiles`, `onboarding`, `public_pages`) are **applied** to the remote DB.
+  Migration 4 (`20260819000000_services_portfolio_store.sql` — services/projects/
+  products/whatsapp_number/media bucket) is **NOT yet applied** — apply via the
+  Supabase MCP (`supabase_apply_migration`) or the Supabase SQL editor. The app
+  degrades gracefully (empty sections) until it lands.
 
 ## Re-authenticating the Supabase MCP
 
@@ -91,15 +93,38 @@ Notes:
 - `title` text, `url` text, `position` int (ordering), `created_at`
 - RLS: each user CRUDs only their own rows; anon can SELECT (public page)
 
+`public.services` (services a creator offers — video creation, reels, etc.):
+
+- `id` uuid PK, `profile_id` uuid FK → `profiles(id)` (cascade)
+- `title` text, `description` text, `price` text (free-form, e.g. "₹500 onwards"), `position`, `created_at`
+- RLS: own-row CRUD for authenticated, anon SELECT
+
+`public.projects` (portfolio — image uploads or video/reel URLs):
+
+- `id` uuid PK, `profile_id` uuid FK → `profiles(id)` (cascade)
+- `title` text, `media_type` (`image`|`video`), `media_url` text (storage URL or external), `description`, `position`, `created_at`
+- RLS: own-row CRUD for authenticated, anon SELECT
+
+`public.products` (WhatsApp store — handmade/digital goods):
+
+- `id` uuid PK, `profile_id` uuid FK → `profiles(id)` (cascade)
+- `name` text, `description` text, `price` numeric(12,2) (INR), `image_url`, `is_active` bool default true, `position`, `created_at`
+- RLS: own-row CRUD for authenticated, anon SELECT (app filters `is_active = true`)
+
+`public.profiles` also carries `whatsapp_number` (text, nullable) — powers the contact
+button, service "Contact" buttons, and product "Order on WhatsApp" links
+(`https://wa.me/<digits>?text=<prefilled>`, see `src/lib/whatsapp.ts`).
+
 `public.public_profiles` (view — public-facing, no email exposed):
 
-- Same columns as profiles minus `email`, `onboarding_completed`
-- Created by migration 3 (`20260818000000_public_pages.sql`)
+- Same columns as profiles minus `email`, `onboarding_completed`, plus `whatsapp_number`
+- Created by migration 3 (`20260818000000_public_pages.sql`), extended by migration 4
+  (`20260819000000_services_portfolio_store.sql`)
 - Owned by postgres (bypasses RLS), SELECT granted to `anon` and `authenticated`
 - Used by public profile pages and sitemap
 
-Storage: public `avatars` bucket, per-user folder `{userId}/…`, users manage only
-their own folder (see migration `20260817010000_onboarding.sql`).
+Storage: public `avatars` bucket (avatar) and public `media` bucket (portfolio images +
+product images), both per-user folder `{userId}/…`, users manage only their own folder.
 
 RPCs (security definer, granted to anon/authenticated, revoked from public):
 
@@ -124,7 +149,7 @@ All routes serve on `creator.devance.in` (production domain).
 | `/login`            | `src/app/login/page.tsx`      | Client; username + password → resolves email via RPC → `signInWithPassword` → `/dashboard` |
 | `/signup`           | `src/app/signup/page.tsx`     | Client; name, email, username (live availability + reserved check), profession, Odisha district, password + confirm. Shows "check email" screen if confirmation on |
 | `/auth/confirm`     | `src/app/auth/confirm/route.ts` | Email confirmation callback (`verifyOtp`) → `/dashboard` |
-| `/dashboard`        | `src/app/dashboard/page.tsx`  | Server; protected. Fetches profile, shows onboarding checklist + details; share panel (short link only); sign out via `actions.ts` |
+| `/dashboard`        | `src/app/dashboard/page.tsx`  | Server; protected. Fetches profile + links + services + projects + products, renders tabbed `DashboardTabs` (Suspense-wrapped). Sign out via `actions.ts` |
 | `/{username}`       | `src/app/[...username]/page.tsx` | Public profile page (short share link `creator.devance.in/username`). Canonical → long URL. 404 for bad/reserved usernames |
 | `/{district}/{profession}/{username}` | `src/app/[district]/[profession]/[username]/page.tsx` | SEO canonical URL — only used by search engines, sitemap, and canonical tags. Wrong district/profession → 307 redirect. JSON-LD Schema.org Person |
 | `/sitemap.xml`      | `src/app/sitemap.ts`          | Dynamic; queries `public_profiles` view, outputs long URLs (for Google) |
@@ -140,10 +165,15 @@ Auth infra:
 - `src/lib/auth-constants.ts` — `PROFESSIONS`, `ODISHA_DISTRICTS` (30 districts),
   `USERNAME_PATTERN`, `normalizeUsername()`, `RESERVED_USERNAMES`, `isReservedUsername()`, `PROFESSION_LABELS`
 - `src/lib/site.ts` — `siteUrl()` helper (reads `NEXT_PUBLIC_SITE_URL`)
-- `src/lib/public-profile.ts` — `getPublicProfile()`, `listPublicProfiles()`,
-  `districtSlug()`, `profileLongUrl()`, `profileShortUrl()`, `buildProfileMetadata()`
+- `src/lib/public-profile.ts` — `getPublicProfile()` (returns profile, links,
+  services, projects, products), `listPublicProfiles()`, `districtSlug()`,
+  `profileLongUrl()`, `profileShortUrl()`, `buildProfileMetadata()`
+- `src/lib/whatsapp.ts` — `waLink(number, text?)` builds `https://wa.me/<digits>?text=…`;
+  `formatPrice()` renders INR (`₹`). Used by Contact/Service/Product buttons.
 - `src/components/AuthShell.tsx` — shared auth page shell
-- `src/components/public/PublicProfilePage.tsx` — server component rendering the public profile page (avatar, brand, bio, socials, links, footer) (logo + card)
+- `src/components/public/PublicProfilePage.tsx` — server component rendering the public
+  profile page (avatar, brand, bio, socials, WhatsApp contact button, Services / Portfolio /
+  Store sections — all hidden when empty, links, footer)
 
 Signup flow note: Supabase project has **email confirmation enabled**
 (`mailer_autoconfirm: false`), so signup lands on a "check your email" state until
@@ -193,6 +223,32 @@ Shared:
 - `Logo.tsx` — SVG logo mark + wordmark with cursive "devance".
 - `AuthShell.tsx` — auth page shell.
 
+## Dashboard structure & components
+
+All under `src/components/dashboard/`, mounted by `src/app/dashboard/page.tsx`
+(server fetch → `<Suspense>` → `DashboardTabs`). Active tab is a URL search param
+(`/dashboard?tab=services`), so it survives reloads.
+
+| Tab               | Component            | Notes                                              |
+| ----------------- | -------------------- | -------------------------------------------------- |
+| shell/nav         | `DashboardTabs.tsx`  | Client; tab bar + renders the active editor        |
+| Profile & Links   | `DashboardEditor.tsx`| Original two-pane link editor (brand, bio, avatar, socials, custom links, share panel) |
+| Services          | `ServicesEditor.tsx` | Add/edit/delete services (title, description, price) |
+| Portfolio         | `PortfolioEditor.tsx`| Image upload to `media` bucket OR video/reel URL; type toggle |
+| Store             | `StoreEditor.tsx`    | Products (name, ₹ price, image, description, show/hide toggle) |
+| Contact           | `ContactEditor.tsx`  | WhatsApp number + live `wa.me` preview link        |
+
+Shared UI:
+- `editor-ui.tsx` — `useFlash()` hook, `FlashMessage`, `editorInputClass`,
+  `PrimaryButton`, `DangerButton`
+- `ImageUpload.tsx` — `useImageUpload(userId)` (uploads to `media/{userId}/…`) +
+  `ImageUpload` preview control. Uses a local blob preview; **pass a `key` tied to the
+  selected item** so the preview resets when switching items (see Store/Portfolio editors).
+
+Every editor follows the same pattern as `DashboardEditor`: left sidebar list of items
+(sticky) + right edit panel; "Add" button toggles a new-item form; positions auto-increment
+(`max position + 1`, matching `links`).
+
 ## Conventions & gotchas
 
 - **Client components**: everything with framer-motion, `useState` or Supabase
@@ -201,7 +257,9 @@ Shared:
 - **ESLint**: `react/no-unescaped-entities` is enforced — escape apostrophes as
   `&apos;` in JSX text. `react-hooks/set-state-in-effect` — do NOT call `setState`
   synchronously inside `useEffect`; move it to event handlers (see the username
-  availability pattern in signup).
+  availability pattern in signup). `ImageUpload` avoids it by resetting its blob
+  preview in the file-pick / remove handlers and relying on a `key` remount when
+  the selected item changes.
 - **Path alias**: `@/*` → `./src/*` (configured in tsconfig).
 - **Colors**: use theme tokens (`text-primary`, `bg-primary-light`, `text-foreground`,
   `text-background`) rather than hardcoded hex.
@@ -251,3 +309,21 @@ Shared:
 - [x] Fixed `.env` — `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` was corrupted
       (PowerShell `Add-Content` appended to last line without newline)
 - [x] Domain updated to `creator.devance.in` (was `devance.in`)
+- [x] Services, Portfolio & Store dashboard (migration 4 `20260819000000_services_portfolio_store.sql`
+      NOT yet applied to remote DB — apply via Supabase MCP / SQL editor):
+      - Dashboard is now tabbed: **Profile & Links | Services | Portfolio | Store | Contact**
+        (active tab in URL `?tab=…`; shell in `src/components/dashboard/DashboardTabs.tsx`)
+      - `ServicesEditor` — add/edit/delete services (title, description, price)
+      - `PortfolioEditor` — image upload to `media` bucket OR video/reel URL
+      - `StoreEditor` — products (name, price ₹, image, description, show/hide toggle)
+      - `ContactEditor` — WhatsApp number with live `wa.me` preview
+      - Shared UI in `src/components/dashboard/editor-ui.tsx` + `ImageUpload.tsx`
+      - Public page (`PublicProfilePage.tsx`) renders stacked sections — Services, Portfolio,
+        Store (all hidden when empty) + WhatsApp contact button; products/services open
+        `wa.me` with pre-filled messages. `getPublicProfile()` now returns services, projects,
+        products too. App degrades gracefully if migration not yet applied (empty sections).
+- [x] `npm run lint` clean for new code (14 pre-existing `no-html-link-for-pages` errors remain
+      in `CTA.tsx`, `Hero.tsx`, `Navbar.tsx`, `Pricing.tsx`, `Showcase.tsx` — landing `<a>` tags
+      to `/login|/signup`, predate this work)
+- [x] `npm run build` passing; smoke-tested `/login` 200, `/dashboard` 307 → `/login`,
+      unknown username 404

@@ -25,6 +25,7 @@ export interface Database {
           instagram_url: string | null;
           facebook_url: string | null;
           youtube_url: string | null;
+          whatsapp_number: string | null;
           onboarding_completed: boolean;
           created_at: string;
           updated_at: string;
@@ -42,6 +43,7 @@ export interface Database {
           instagram_url?: string | null;
           facebook_url?: string | null;
           youtube_url?: string | null;
+          whatsapp_number?: string | null;
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -59,6 +61,7 @@ export interface Database {
           instagram_url?: string | null;
           facebook_url?: string | null;
           youtube_url?: string | null;
+          whatsapp_number?: string | null;
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -100,6 +103,129 @@ export interface Database {
           },
         ];
       };
+      services: {
+        Row: {
+          id: string;
+          profile_id: string;
+          title: string;
+          description: string | null;
+          price: string | null;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          title: string;
+          description?: string | null;
+          price?: string | null;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          title?: string;
+          description?: string | null;
+          price?: string | null;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "services_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      projects: {
+        Row: {
+          id: string;
+          profile_id: string;
+          title: string;
+          media_type: "image" | "video";
+          media_url: string;
+          description: string | null;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          title: string;
+          media_type: "image" | "video";
+          media_url: string;
+          description?: string | null;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          title?: string;
+          media_type?: "image" | "video";
+          media_url?: string;
+          description?: string | null;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "projects_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      products: {
+        Row: {
+          id: string;
+          profile_id: string;
+          name: string;
+          description: string | null;
+          price: number | null;
+          image_url: string | null;
+          is_active: boolean;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id: string;
+          name: string;
+          description?: string | null;
+          price?: number | null;
+          image_url?: string | null;
+          is_active?: boolean;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string;
+          name?: string;
+          description?: string | null;
+          price?: number | null;
+          image_url?: string | null;
+          is_active?: boolean;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "products_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       public_profiles: {
@@ -115,6 +241,7 @@ export interface Database {
           instagram_url: string | null;
           facebook_url: string | null;
           youtube_url: string | null;
+          whatsapp_number: string | null;
           created_at: string;
           updated_at: string;
         };

@@ -1,7 +1,14 @@
 import Link from "next/link";
 import Logo from "@/components/Logo";
-import type { PublicLink, PublicProfile } from "@/lib/public-profile";
+import type {
+  PublicLink,
+  PublicProduct,
+  PublicProfile,
+  PublicProject,
+  PublicService,
+} from "@/lib/public-profile";
 import { PROFESSION_LABELS } from "@/lib/auth-constants";
+import { formatPrice, waLink } from "@/lib/whatsapp";
 
 type SocialKey = "instagram" | "facebook" | "youtube";
 
@@ -39,14 +46,152 @@ function normalizeUrl(url: string) {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
+function SectionHeading({ title }: { title: string }) {
+  return (
+    <div className="mt-10 flex items-center gap-3">
+      <h2 className="text-lg font-extrabold tracking-tight text-foreground">{title}</h2>
+      <span className="h-px flex-1 bg-zinc-200" />
+    </div>
+  );
+}
+
+function WhatsAppIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M17.5 14.4c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.5 0 1.47 1.07 2.9 1.22 3.1.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2-1.42.25-.7.25-1.3.18-1.42-.08-.13-.28-.2-.58-.35zM12.05 21.8h-.01a9.8 9.8 0 0 1-5-1.37l-.36-.21-3.72.97.99-3.63-.24-.37a9.77 9.77 0 0 1-1.5-5.22c0-5.4 4.4-9.8 9.83-9.8a9.77 9.77 0 0 1 9.8 9.81c0 5.4-4.39 9.78-9.79 9.78zm8.24-18.02A11.75 11.75 0 0 0 12.04 0C5.5 0 .16 5.34.16 11.9c0 2.1.55 4.15 1.6 5.96L0 24l6.28-1.64a11.9 11.9 0 0 0 5.75 1.46h.01c6.55 0 11.89-5.33 11.89-11.9 0-3.18-1.24-6.16-3.64-8.4z" />
+    </svg>
+  );
+}
+
+function ServiceCard({
+  service,
+  waLinkFor,
+}: {
+  service: PublicService;
+  waLinkFor: (text: string) => string;
+}) {
+  const price = formatPrice(service.price);
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-bold text-foreground">{service.title}</h3>
+        {price && <span className="shrink-0 text-sm font-bold text-primary">{price}</span>}
+      </div>
+      {service.description && (
+        <p className="text-sm leading-relaxed text-zinc-600">{service.description}</p>
+      )}
+      <a
+        href={waLinkFor(`Hi, I'm interested in your service: ${service.title}`)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5"
+      >
+        <WhatsAppIcon className="h-4 w-4" />
+        Contact
+      </a>
+    </div>
+  );
+}
+
+function ProjectCard({ project }: { project: PublicProject }) {
+  if (project.media_type === "video") {
+    return (
+      <a
+        href={normalizeUrl(project.media_url)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-900 to-zinc-700 shadow-sm transition-transform hover:-translate-y-0.5"
+      >
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-transform group-hover:scale-110">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="ml-0.5 h-6 w-6">
+            <path d="M8 5.5v13l11-6.5-11-6.5z" />
+          </svg>
+        </span>
+        {project.title && (
+          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-8 text-sm font-semibold text-white">
+            {project.title}
+          </span>
+        )}
+      </a>
+    );
+  }
+  return (
+    <div className="group relative aspect-square overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-sm transition-transform hover:-translate-y-0.5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={project.media_url}
+        alt={project.title || "Portfolio image"}
+        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+      {project.title && (
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-3 pt-8 text-sm font-semibold text-white">
+          {project.title}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function ProductCard({
+  product,
+  waLinkFor,
+}: {
+  product: PublicProduct;
+  waLinkFor: (text: string) => string;
+}) {
+  const price = formatPrice(product.price);
+  return (
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="relative aspect-square overflow-hidden bg-zinc-100">
+        {product.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.image_url}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-3xl">🛍️</span>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-bold text-foreground">{product.name}</h3>
+          {price && <span className="shrink-0 text-sm font-bold text-primary">{price}</span>}
+        </div>
+        {product.description && (
+          <p className="mt-1 text-sm leading-relaxed text-zinc-600">{product.description}</p>
+        )}
+        <a
+          href={waLinkFor(`Hi, I want to order "${product.name}"${price ? ` (${price})` : ""}`)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5"
+        >
+          <WhatsAppIcon className="h-4 w-4" />
+          Order on WhatsApp
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export default function PublicProfilePage({
   profile,
   links,
+  services,
+  projects,
+  products,
 }: {
   profile: PublicProfile;
   links: PublicLink[];
+  services: PublicService[];
+  projects: PublicProject[];
+  products: PublicProduct[];
 }) {
   const displayName = profile.brand_name || profile.full_name;
+  const hasWhatsApp = Boolean(profile.whatsapp_number);
+  const waLinkFor = (text: string) => waLink(profile.whatsapp_number ?? "", text);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-violet-50 via-white to-white">
@@ -79,27 +224,76 @@ export default function PublicProfilePage({
             </p>
           )}
 
-          {SOCIALS.some((s) => profile[`${s.key}_url`]) && (
-            <div className="mt-6 flex items-center gap-3">
-              {SOCIALS.map((social) => {
-                const url = profile[`${social.key}_url`];
-                if (!url) return null;
-                return (
-                  <a
-                    key={social.key}
-                    href={normalizeUrl(url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={social.label}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
-                      <path d={social.path} strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </a>
-                );
-              })}
-            </div>
+          <div className="mt-6 flex w-full flex-col items-center gap-3">
+            {hasWhatsApp && (
+              <a
+                href={waLinkFor("Hi, I found your page on devance and would like to connect.")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition-all hover:-translate-y-0.5"
+              >
+                <WhatsAppIcon className="h-5 w-5" />
+                Chat on WhatsApp
+              </a>
+            )}
+
+            {SOCIALS.some((s) => profile[`${s.key}_url`]) && (
+              <div className="flex items-center gap-3">
+                {SOCIALS.map((social) => {
+                  const url = profile[`${social.key}_url`];
+                  if (!url) return null;
+                  return (
+                    <a
+                      key={social.key}
+                      href={normalizeUrl(url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={social.label}
+                      className="flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
+                        <path d={social.path} strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {services.length > 0 && (
+            <section className="w-full">
+              <SectionHeading title="Services" />
+              <ul className="mt-4 flex flex-col gap-3">
+                {services.map((service) => (
+                  <li key={service.id}>
+                    <ServiceCard service={service} waLinkFor={waLinkFor} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {projects.length > 0 && (
+            <section className="w-full">
+              <SectionHeading title="Portfolio" />
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {projects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {products.length > 0 && (
+            <section className="w-full">
+              <SectionHeading title="Store" />
+              <div className="mt-4 flex flex-col gap-4">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} waLinkFor={waLinkFor} />
+                ))}
+              </div>
+            </section>
           )}
 
           <ul className="mt-8 flex w-full flex-col gap-3">
@@ -124,11 +318,6 @@ export default function PublicProfilePage({
                 </a>
               </li>
             ))}
-            {links.length === 0 && (
-              <li className="rounded-2xl border border-dashed border-zinc-200 px-5 py-6 text-center text-sm text-zinc-400">
-                No links yet.
-              </li>
-            )}
           </ul>
         </div>
 

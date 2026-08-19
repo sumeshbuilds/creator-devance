@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
 import Logo from "@/components/Logo";
-import DashboardEditor from "@/components/dashboard/DashboardEditor";
+import DashboardTabs from "@/components/dashboard/DashboardTabs";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -12,17 +13,14 @@ export default async function DashboardPage() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  const { data: links } = await supabase
-    .from("links")
-    .select("*")
-    .eq("profile_id", user.id)
-    .order("position", { ascending: true });
+  const [{ data: profile }, { data: links }, { data: services }, { data: projects }, { data: products }] =
+    await Promise.all([
+      supabase.from("profiles").select("*").eq("id", user.id).single(),
+      supabase.from("links").select("*").eq("profile_id", user.id).order("position", { ascending: true }),
+      supabase.from("services").select("*").eq("profile_id", user.id).order("position", { ascending: true }),
+      supabase.from("projects").select("*").eq("profile_id", user.id).order("position", { ascending: true }),
+      supabase.from("products").select("*").eq("profile_id", user.id).order("position", { ascending: true }),
+    ]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-violet-50 via-white to-white">
@@ -44,7 +42,16 @@ export default async function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <DashboardEditor profile={profile} links={links ?? []} userId={user.id} />
+        <Suspense fallback={<div className="py-10 text-center text-zinc-400">Loading dashboard…</div>}>
+          <DashboardTabs
+            profile={profile}
+            links={links ?? []}
+            services={services ?? []}
+            projects={projects ?? []}
+            products={products ?? []}
+            userId={user.id}
+          />
+        </Suspense>
       </main>
     </div>
   );

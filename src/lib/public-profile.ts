@@ -6,6 +6,9 @@ import { PROFESSION_LABELS } from "@/lib/auth-constants";
 export type PublicProfile =
   Database["public"]["Views"]["public_profiles"]["Row"];
 export type PublicLink = Database["public"]["Tables"]["links"]["Row"];
+export type PublicService = Database["public"]["Tables"]["services"]["Row"];
+export type PublicProject = Database["public"]["Tables"]["projects"]["Row"];
+export type PublicProduct = Database["public"]["Tables"]["products"]["Row"];
 
 export function districtSlug(district: string) {
   return district.toLowerCase();
@@ -43,7 +46,33 @@ export async function getPublicProfile(username: string) {
     .eq("profile_id", profile.id)
     .order("position", { ascending: true });
 
-  return { profile, links: links ?? [] };
+  const [{ data: services }, { data: projects }, { data: products }] =
+    await Promise.all([
+      supabase
+        .from("services")
+        .select("*")
+        .eq("profile_id", profile.id)
+        .order("position", { ascending: true }),
+      supabase
+        .from("projects")
+        .select("*")
+        .eq("profile_id", profile.id)
+        .order("position", { ascending: true }),
+      supabase
+        .from("products")
+        .select("*")
+        .eq("profile_id", profile.id)
+        .eq("is_active", true)
+        .order("position", { ascending: true }),
+    ]);
+
+  return {
+    profile,
+    links: links ?? [],
+    services: services ?? [],
+    projects: projects ?? [],
+    products: products ?? [],
+  };
 }
 
 export async function listPublicProfiles() {
